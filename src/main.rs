@@ -1,9 +1,20 @@
+use clap::Clap;
 use std::io;
 use std::process::Command;
 use std::{thread, time};
 
+#[derive(Clap)]
+struct Opts {
+    #[clap(short = "p", long = "prometheus-push-addr", required = true)]
+    metrics_addr: String,
+    #[clap(short = "d", long = "drive", multiple = true, required = true)]
+    drives: Vec<String>,
+}
+
 fn main() {
-    std::process::exit(match run_app() {
+    let opts: Opts = Opts::parse();
+
+    std::process::exit(match run_app(opts.drives, opts.metrics_addr) {
         Ok(_) => 0,
         Err(err) => {
             eprintln!("error: {:?}", err);
@@ -12,14 +23,18 @@ fn main() {
     });
 }
 
-fn run_app() -> io::Result<()> {
-    let _ = run_cmd("smartctl", vec!["--test=short", "/dev/sdb"])?;
-    let _ = run_cmd("smartctl", vec!["--test=short", "/dev/sdc"])?;
+fn run_app(drives: Vec<String>, metrics_addr: String) -> io::Result<()> {
+    for d in &drives {
+        let _ = run_cmd("smartctl", vec!["--test=short", &d])?;
+    }
 
     thread::sleep(time::Duration::from_secs(80));
 
-    let _ = run_cmd("smartctl", vec!["-q", "errorsonly", "-a", "/dev/sdb"])?;
-    let _ = run_cmd("smartctl", vec!["-q", "errorsonly", "-a", "/dev/sdc"])?;
+    for d in &drives {
+        let _ = run_cmd("smartctl", vec!["-q", "errorsonly", "-a", &d])?;
+    }
+
+    println!("would emit metrics to {}", metrics_addr);
 
     Ok(())
 }
