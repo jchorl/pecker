@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 clap = { git = "https://github.com/clap-rs/clap/" }
+lazy_static = "1.4.0"
+prometheus = { version = "0.8", features = ["push"] }
